@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const run = async () => {
-    await mongoose.connect("mongodb://localhost:27017/tag_heuer", {
+    await mongoose.connect(process.env.DB_CONFIG, {
         useNewUrlParser: true,
         useUnifiedTopology: true
     }).then(() => {
