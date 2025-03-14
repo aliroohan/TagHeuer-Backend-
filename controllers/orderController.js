@@ -1,16 +1,18 @@
 const Order = require('../models/orders');
 const Cart = require('../models/cart');
+const Watch = require('../models/watch');
 
 // Create a new order
 const createOrder = async (req, res) => {
     try {
-        const { user, products, total_price } = req.body;
+        const { products, total_price } = req.body;
+        const user = req.user;
 
         // Validate required fields
         if (!user || !products || !total_price) {
             return res.status(400).json({
                 success: false,
-                error: 'Please provide user, products, and total price'
+                error: 'Please provide user, products, quantity and total price'
             });
         }
 
@@ -22,13 +24,38 @@ const createOrder = async (req, res) => {
             status: 'pending' // Default status
         });
 
+
+
         const savedOrder = await newOrder.save();
 
-        // Optionally clear the user's cart after order creation
-        await Cart.findOneAndUpdate(
-            { user: user },
-            { products: [], total_price: 0 }
-        );
+        // Get current cart
+        const userCart = await Cart.findOne({ user: user });
+        if (userCart) {
+            // Filter out products that are in the order
+            const orderProductIds = products.map(p => p.product.toString());
+            const remainingProducts = userCart.products.filter(p => !orderProductIds.includes(p.product.toString()));
+
+            // Recalculate total price for remaining products
+            const newTotalPrice = remainingProducts.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+            // Update cart with remaining products
+            await Cart.findOneAndUpdate(
+                { user: user },
+                {
+                    products: remainingProducts,
+                    total_price: newTotalPrice
+                }
+            );
+        }
+
+        // Update watch quantities
+        for (const product of products) {
+            const watch = await Watch.findById(product.product);
+            if (watch) {
+                watch.quantity -= product.quantity;
+                await watch.save();
+            }
+        }
 
         res.status(201).json({
             success: true,
@@ -41,7 +68,6 @@ const createOrder = async (req, res) => {
         });
     }
 };
-
 // Get all orders
 const getAllOrders = async (req, res) => {
     try {
@@ -65,7 +91,7 @@ const getAllOrders = async (req, res) => {
 // Get orders by user ID
 const getOrdersByUser = async (req, res) => {
     try {
-        const userId = req.params.userId;
+        const userId = req.user._id;
         const orders = await Order.find({ user: userId })
             .populate('user', 'username email')
             .populate('products.product');
@@ -86,7 +112,7 @@ const getOrdersByUser = async (req, res) => {
 // Get order by ID
 const getOrderById = async (req, res) => {
     try {
-        const order = await Order.findById(req.params.id)
+        const order = await Order.findById(req.body._id)
             .populate('user', 'username email')
             .populate('products.product');
 
@@ -112,7 +138,7 @@ const getOrderById = async (req, res) => {
 // Update order status
 const updateOrderStatus = async (req, res) => {
     try {
-        const { status } = req.body;
+        const { status, orderId } = req.body;
 
         if (!status) {
             return res.status(400).json({
@@ -122,7 +148,7 @@ const updateOrderStatus = async (req, res) => {
         }
 
         const order = await Order.findByIdAndUpdate(
-            req.params.id,
+            orderId,
             { status },
             {
                 new: true,
@@ -152,7 +178,7 @@ const updateOrderStatus = async (req, res) => {
 // Delete order
 const deleteOrder = async (req, res) => {
     try {
-        const order = await Order.findByIdAndDelete(req.params.id);
+        const order = await Order.findByIdAndDelete(req.user._id);
 
         if (!order) {
             return res.status(404).json({

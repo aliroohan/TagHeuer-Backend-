@@ -1,57 +1,11 @@
 const Cart = require('../models/cart');
+const Product = require('../models/watch');
 
-// Create or update cart
-const createOrUpdateCart = async (req, res) => {
-    try {
-        const { user, products, total_price } = req.body;
-
-        // Validate required fields
-        if (!user || !products || !total_price) {
-            return res.status(400).json({
-                success: false,
-                error: 'Please provide user, products, and total price'
-            });
-        }
-
-        // Find if cart exists for user
-        let cart = await Cart.findOne({ user });
-
-        if (cart) {
-            // Update existing cart
-            cart = await Cart.findOneAndUpdate(
-                { user },
-                { products, total_price },
-                {
-                    new: true,
-                    runValidators: true
-                }
-            );
-        } else {
-            // Create new cart
-            cart = new Cart({
-                user,
-                products,
-                total_price
-            });
-            await cart.save();
-        }
-
-        res.status(200).json({
-            success: true,
-            data: cart
-        });
-    } catch (error) {
-        res.status(400).json({
-            success: false,
-            error: error.message
-        });
-    }
-};
 
 // Get cart by user ID
 const getCartByUser = async (req, res) => {
     try {
-        const userId = req.params.userId;
+        const userId = req.user._id;
         const cart = await Cart.findOne({ user: userId })
             .populate('user', 'username email')
             .populate('products.product');
@@ -78,17 +32,24 @@ const getCartByUser = async (req, res) => {
 // Add product to cart
 const addProductToCart = async (req, res) => {
     try {
-        const { userId } = req.params;
-        const { product, quantity, price } = req.body;
+        const userId = req.user._id;
+        const { productId, quantity } = req.body;
 
         // Validate required fields
-        if (!product || !quantity || !price) {
+        if (!productId || !quantity) {
             return res.status(400).json({
                 success: false,
                 error: 'Please provide product, quantity, and price'
             });
         }
-
+        let product = await Product.findById(productId);
+        const price = product.price;
+        if (product.quantity < quantity) {
+            return res.status(400).json({
+                success: false,
+                error: 'Not enough quantity available'
+            });
+        }
         // Find cart for user
         let cart = await Cart.findOne({ user: userId });
 
@@ -102,7 +63,7 @@ const addProductToCart = async (req, res) => {
         } else {
             // Check if product already exists in cart
             const existingProductIndex = cart.products.findIndex(
-                item => item.product.toString() === product
+                item => item.product.toString() === productId
             );
 
             if (existingProductIndex > -1) {
@@ -137,7 +98,8 @@ const addProductToCart = async (req, res) => {
 // Remove product from cart
 const removeProductFromCart = async (req, res) => {
     try {
-        const { userId, productId } = req.params;
+        const userId = req.user._id;
+        const { productId } = req.body;
 
         // Find cart for user
         const cart = await Cart.findOne({ user: userId });
@@ -177,10 +139,61 @@ const removeProductFromCart = async (req, res) => {
     }
 };
 
+const removeOne = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { productId } = req.body;
+
+        // Find cart for user
+        const cart = await Cart.findOne({ user: userId });
+        if (!cart) {
+            return res.status(404).json({
+                success: false,
+                error: 'Cart not found for this user'
+            });
+        }
+
+        // Find the product in the cart
+        const productIndex = cart.products.findIndex(
+            item => item.product.toString() === productId
+        );
+        if (productIndex === -1) {
+            return res.status(404).json({
+                success: false,
+                error: 'Product not found in cart'
+            });
+        }
+        // Decrease the quantity of the product by 1
+        cart.products[productIndex].quantity -= 1;
+        // Recalculate total price
+        cart.total_price = cart.products.reduce(
+            (total, item) => total + (item.price * item.quantity),
+            0
+        );
+
+        if (cart.products[productIndex].quantity === 0) {
+            // Remove the product from the cart if quantity is 0
+            cart.products.splice(productIndex, 1);
+        }
+
+        await cart.save();
+        res.status(200).json({
+            success: true,
+            data: cart
+        });
+
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            error: error.message
+        });
+    }
+}
+
 // Clear cart
 const clearCart = async (req, res) => {
     try {
-        const { userId } = req.params;
+        const userId = req.user._id;
 
         const cart = await Cart.findOneAndUpdate(
             { user: userId },
@@ -208,9 +221,9 @@ const clearCart = async (req, res) => {
 };
 
 module.exports = {
-    createOrUpdateCart,
     getCartByUser,
     addProductToCart,
     removeProductFromCart,
+    removeOne,
     clearCart
 };

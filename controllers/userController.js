@@ -1,19 +1,20 @@
 const User = require('../models/user');
+const jwt = require('jsonwebtoken');
 
 // Create a new user
 const createUser = async (req, res) => {
     try {
         // Check if required fields are present
-        const { email, password, username } = req.body; // Destructure required fields from request body
-        if (!email || !password || !username) {
+        const { email, password, first_name, last_name } = req.body;
+        if (!email || !password || !first_name || !last_name) {
             return res.status(400).json({
                 success: false,
-                error: 'Please provide email, password and username' // Error message for missing fields
+                error: 'Please provide email, password, first name and last name'
             });
         }
 
         // Check if email already exists
-        const existingUser = await User.findOne({ email }); // Query to find existing user by email
+        const existingUser = await User.findOne({ email:email }); // Query to find existing user by email
         if (existingUser) {
             return res.status(400).json({
                 success: false,
@@ -22,10 +23,15 @@ const createUser = async (req, res) => {
         }
 
         const newUser = new User(req.body); // Create a new user instance
+
+        // Generate JWT token
+        const token = jwt.sign({ _id: newUser._id }, process.env.JWT_SECRET);
+        newUser.token = token; // Attach the token to the user object
+
         const savedUser = await newUser.save(); // Save the new user to the database
         res.status(201).json({
             success: true,
-            data: savedUser // Return the saved user data
+            data: newUser
         });
     } catch (error) {
         res.status(400).json({
@@ -52,6 +58,119 @@ const getAllUsers = async (req, res) => {
     }
 };
 
+const loginUser = async (req, res) => {
+    try {
+        const {email, password} = req.body;
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                error: 'Please provide email and password'
+            });
+        }
+
+        // Don't exclude the password field for authentication
+        const user = await User.findOne({ email: email });
+        console.log(user.is_admin);
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid credentials'
+            });
+        }
+
+        if (user.is_admin) {
+            return res.status(401).json({
+                success: false,
+                error: 'Admin cannot login as a user'
+            });
+        }
+
+        // Add 'const' to properly declare the variable
+        const isMatch = await user.comparePassword(password);
+
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid credentials'
+            });
+        }
+
+        // Generate JWT token
+        const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+        // Return only necessary user information, not the entire user object
+        return res.status(200).json({
+            success: true,
+            data: {
+                id: user._id,
+                email: user.email,
+                token: token,
+                // other non-sensitive fields
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+};
+
+
+const loginAdmin = async (req, res) => {
+    try {
+        const {email, password} = req.body;
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                error: 'Please provide email and password'
+            });
+        }
+
+        // Check if the user is an admin
+        const user = await User.findOne({ email: email });
+
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid credentials'
+            });
+        }
+
+        if (!user.is_admin) {
+            return res.status(401).json({
+                success: false,
+                error: 'Only admins can login as admins'
+            });
+        }
+        // Add 'const' to properly declare the variable
+        const isMatch = await user.comparePassword(password);
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid credentials'
+            })
+        }
+        // Generate JWT token
+        const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        // Return only necessary user information, not the entire user object
+        return res.status(200).json({
+            success: true,
+            data: {
+                id: user._id,
+                email: user.email,
+                token: token,
+
+            }
+        })
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        })
+
+    }
+}
 // Get single user by ID
 const getUserById = async (req, res) => {
     try {
@@ -129,7 +248,9 @@ const deleteUser = async (req, res) => {
 module.exports = {
     createUser,
     getAllUsers,
+    loginUser,
     getUserById,
     updateUser,
+    loginAdmin,
     deleteUser
 };

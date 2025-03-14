@@ -36,8 +36,20 @@ exports.getWatchById = async (req, res) => {
 // @access  Private
 exports.createWatch = async (req, res) => {
     try {
-        // Check if required fields are present
-        const requiredFields = ['name', 'brand', 'price'];
+        // Check if required fields are present according to schema
+        const requiredFields = [
+            'name',
+            'reference',
+            'price',
+            'description',
+            'movement',
+            'case',
+            'strap',
+            'dial',
+            'quantity',
+            'images'
+        ];
+
         const missingFields = requiredFields.filter(field => !req.body[field]);
         
         if (missingFields.length > 0) {
@@ -46,11 +58,24 @@ exports.createWatch = async (req, res) => {
             });
         }
 
-        // Check for existing watch with same name
-        const existingWatch = await Watch.findOne({ name: req.body.name });
+        // Validate price and quantity are positive numbers
+        if (req.body.price <= 0) {
+            return res.status(400).json({
+                message: 'Price must be a positive number'
+            });
+        }
+
+        if (req.body.quantity <= 0) {
+            return res.status(400).json({
+                message: 'Quantity must be a positive number'
+            });
+        }
+
+        // Check for existing watch with same reference number
+        const existingWatch = await Watch.findOne({ reference: req.body.reference });
         if (existingWatch) {
             return res.status(400).json({
-                message: 'A watch with this name already exists'
+                message: 'A watch with this reference number already exists'
             });
         }
 
@@ -60,7 +85,6 @@ exports.createWatch = async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 };
-
 // @desc    Update watch
 // @route   PUT /api/watches/:id
 // @access  Private
