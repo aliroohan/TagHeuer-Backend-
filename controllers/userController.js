@@ -1,12 +1,13 @@
 const User = require('../models/user');
 const Watch = require('../models/watch');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 // Create a new user
 const createUser = async (req, res) => {
     try {
         // Check if required fields are present
-        const { email, password, first_name, last_name } = req.body;
+        const {email, password, first_name, last_name} = req.body;
         if (!email || !password || !first_name || !last_name) {
             return res.status(400).json({
                 success: false,
@@ -15,7 +16,7 @@ const createUser = async (req, res) => {
         }
 
         // Check if email already exists
-        const existingUser = await User.findOne({ email:email }); // Query to find existing user by email
+        const existingUser = await User.findOne({email: email}); // Query to find existing user by email
         if (existingUser) {
             return res.status(400).json({
                 success: false,
@@ -26,7 +27,7 @@ const createUser = async (req, res) => {
         const newUser = new User(req.body); // Create a new user instance
 
         // Generate JWT token
-        const token = jwt.sign({ _id: newUser._id }, process.env.JWT_SECRET);
+        const token = jwt.sign({_id: newUser._id}, process.env.JWT_SECRET);
         newUser.token = token; // Attach the token to the user object
 
         const savedUser = await newUser.save(); // Save the new user to the database
@@ -70,7 +71,7 @@ const loginUser = async (req, res) => {
         }
 
         // Don't exclude the password field for authentication
-        const user = await User.findOne({ email: email });
+        const user = await User.findOne({email: email});
         console.log(user.is_admin);
         if (!user) {
             return res.status(401).json({
@@ -97,7 +98,7 @@ const loginUser = async (req, res) => {
         }
 
         // Generate JWT token
-        const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({_id: user._id}, process.env.JWT_SECRET, {expiresIn: '1h'});
 
         // Return only necessary user information, not the entire user object
         return res.status(200).json({
@@ -128,7 +129,7 @@ const loginAdmin = async (req, res) => {
         }
 
         // Check if the user is an admin
-        const user = await User.findOne({ email: email });
+        const user = await User.findOne({email: email});
 
         if (!user) {
             return res.status(401).json({
@@ -152,7 +153,7 @@ const loginAdmin = async (req, res) => {
             })
         }
         // Generate JWT token
-        const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({_id: user._id}, process.env.JWT_SECRET, {expiresIn: '1h'});
         // Return only necessary user information, not the entire user object
         return res.status(200).json({
             success: true,
@@ -197,7 +198,7 @@ const getUserById = async (req, res) => {
 const updateUser = async (req, res) => {
     try {
         const user = await User.findByIdAndUpdate(
-            req.params.id,
+            req.user._id,
             req.body,
             {
                 new: true, // Return the updated user
@@ -316,13 +317,84 @@ const removeFromWishlist = async (req, res) => {
         })
 
 
-    } catch (error){
+    } catch (error) {
         res.status(500).json({
             success: false,
             error: error.message
         })
     }
 }
+
+const updatePassword = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found'
+            })
+        }
+        const {oldPassword, newPassword} = req.body;
+        if (oldPassword === newPassword) {
+            return res.status(400).json({
+                success: false,
+                error: 'New password must be different from old password'
+            })
+        }
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
+        if (!isMatch) {
+            return res.status(400).json({
+                success: false,
+                error: 'Old password is incorrect'
+            })
+        }
+
+
+        user.password = newPassword;
+        await user.save();
+        res.status(200).json({
+            success: true,
+            data: user
+        })
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        })
+    }
+}
+
+
+const changeEmail = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found'
+            })
+        }
+        const {email} = req.body;
+        if (email === user.email) {
+            return res.status(400).json({
+                success: false,
+                error: 'New email must be different from old email'
+            })
+        }
+        user.email = email;
+        await user.save();
+        res.status(200).json({
+            success: true,
+            data: user
+        })
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        })
+    }
+}
+
 // Exporting all functions at the end
 module.exports = {
     createUser,
@@ -333,5 +405,7 @@ module.exports = {
     loginAdmin,
     deleteUser,
     addToWishlist,
-    removeFromWishlist
+    removeFromWishlist,
+    updatePassword,
+    changeEmail
 };

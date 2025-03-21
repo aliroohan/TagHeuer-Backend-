@@ -9,7 +9,7 @@ const createOrder = async (req, res) => {
         const user = req.user;
 
         // Validate required fields
-        if (!user || !products || !total_price) {
+        if (!products || !total_price) {
             return res.status(400).json({
                 success: false,
                 error: 'Please provide user, products, quantity and total price'
@@ -21,7 +21,7 @@ const createOrder = async (req, res) => {
             user,
             products,
             total_price,
-            status: 'pending' // Default status
+            status: 'pending'
         });
 
 
@@ -112,7 +112,7 @@ const getOrdersByUser = async (req, res) => {
 // Get order by ID
 const getOrderById = async (req, res) => {
     try {
-        const order = await Order.findById(req.body._id)
+        const order = await Order.findById(req.params.orderId)
             .populate('user', 'username email')
             .populate('products.product');
 
@@ -175,29 +175,6 @@ const updateOrderStatus = async (req, res) => {
     }
 };
 
-// Delete order
-const deleteOrder = async (req, res) => {
-    try {
-        const order = await Order.findByIdAndDelete(req.user._id);
-
-        if (!order) {
-            return res.status(404).json({
-                success: false,
-                error: 'Order not found'
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            data: {}
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-};
 
 module.exports = {
     createOrder,
@@ -205,5 +182,5 @@ module.exports = {
     getOrdersByUser,
     getOrderById,
     updateOrderStatus,
-    deleteOrder
+
 };

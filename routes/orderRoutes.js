@@ -6,16 +6,15 @@ const {
     getAllOrders,
     getOrdersByUser,
     getOrderById,
-    updateOrderStatus,
-    deleteOrder
+    updateOrderStatus
 } = require('../controllers/orderController');
 
 // Order routes
 router.post('/', middlewares.auth, createOrder);
 router.get('/', middlewares.isAdmin, getAllOrders);
 router.get('/user/', middlewares.auth, getOrdersByUser);
-router.get('/adminorderId', middlewares.auth, getOrderById);
+router.get('/:orderId', middlewares.auth, getOrderById);
 router.put('/orderId/status', middlewares.isAdmin,updateOrderStatus);
-router.delete('/', deleteOrder);
+
 
 module.exports = router;
