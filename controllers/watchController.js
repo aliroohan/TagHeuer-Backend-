@@ -1,9 +1,8 @@
 const Watch = require('../models/watch');
+const User = require('../models/user');
 
-// @desc    Get all watches
-// @route   GET /api/watches
-// @access  Public
-exports.getAllWatches = async (req, res) => {
+// Get all watches
+const getAllWatches = async (req, res) => {
     try {
         const watches = await Watch.find();
         res.status(200).json(watches);
@@ -14,10 +13,8 @@ exports.getAllWatches = async (req, res) => {
     }
 };
 
-// @desc    Get single watch by ID
-// @route   GET /api/watches/:id
-// @access  Public
-exports.getWatchById = async (req, res) => {
+//Get single watch by ID
+const getWatchById = async (req, res) => {
     try {
         const watch = await Watch.findById(req.params.id);
         if (!watch) {
@@ -31,16 +28,35 @@ exports.getWatchById = async (req, res) => {
     }
 };
 
-// @desc    Create new watch
-// @route   POST /api/watches
-// @access  Private
-exports.createWatch = async (req, res) => {
+//get watches by category
+const getWatchesByCategory = async (req, res) => {
+    try {
+        const watches = await Watch.find({ category: {$regex: req.params.category, $options: 'i'} });
+        if (!watches || watches.length === 0) {
+            return res.status(404).json({ message: 'No watches found for the specified category' });
+        }
+        res.status(200).json(
+            {
+                watches: watches,
+                message: 'Watches retrieved successfully'
+            });
+    } catch (error) {
+    res.status(500).json({
+        success: false,
+        message: error.message
+    })
+    }
+};
+
+//Create new watch
+const createWatch = async (req, res) => {
     try {
         // Check if required fields are present according to schema
         const requiredFields = [
             'name',
             'reference',
             'price',
+            'category',
             'description',
             'movement',
             'case',
@@ -85,10 +101,9 @@ exports.createWatch = async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 };
-// @desc    Update watch
-// @route   PUT /api/watches/:id
-// @access  Private
-exports.updateWatch = async (req, res) => {
+
+// Update watch
+const updateWatch = async (req, res) => {
     try {
         // Check if required fields are present
         const requiredFields = ['name', 'brand', 'price'];
@@ -130,10 +145,8 @@ exports.updateWatch = async (req, res) => {
     }
 };
 
-// @desc    Delete watch
-// @route   DELETE /api/watches/:id
-// @access  Private
-exports.deleteWatch = async (req, res) => {
+//Delete watch
+const deleteWatch = async (req, res) => {
     try {
         const watch = await Watch.findById(req.params.id);
         
@@ -148,17 +161,17 @@ exports.deleteWatch = async (req, res) => {
     }
 };
 
-// @desc    Search watches
-// @route   GET /api/watches/search
-// @access  Public
-exports.searchWatches = async (req, res) => {
+
+
+// Search watches
+const searchWatches = async (req, res) => {
     try {
-        const keyword = req.query.keyword
+        const keyword = req.params.val
             ? {
                 $or: [
-                    { name: { $regex: req.query.keyword, $options: 'i' } },
-                    { reference: { $regex: req.query.keyword, $options: 'i' } },
-                    { description: { $regex: req.query.keyword, $options: 'i' } }
+                    { name: { $regex: req.params.val, $options: 'i' } },
+                    { reference: { $regex: req.params.val, $options: 'i' } },
+                    { description: { $regex: req.params.val, $options: 'i' } }
                 ]
             }
             : {};
@@ -168,4 +181,15 @@ exports.searchWatches = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
+};
+
+// Export all functions as a single object
+module.exports = {
+    getAllWatches,
+    getWatchById,
+    getWatchesByCategory,
+    createWatch,
+    updateWatch,
+    deleteWatch,
+    searchWatches,
 };

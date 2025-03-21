@@ -49,8 +49,9 @@ const UserSchema = new mongoose.Schema({
     },
     wishlist: [{
         watch_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Watch',
+            type: mongoose.Schema.Types.ObjectId,
+            unique: true,
+            ref: 'Watch',
         }
     }],
 },

@@ -9,6 +9,7 @@ const {
     deleteAddress
 } = require('../controllers/addressController');
 
+
 // Address routes
 router.post('/', createAddress);
 router.get('/', getAllAddresses);

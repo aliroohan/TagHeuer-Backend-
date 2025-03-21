@@ -139,6 +139,7 @@ const removeProductFromCart = async (req, res) => {
     }
 };
 
+// Remove one product from cart
 const removeOne = async (req, res) => {
     try {
         const userId = req.user._id;

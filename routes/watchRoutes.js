@@ -1,4 +1,5 @@
 const express = require('express');
+const middleware = require('../middleware/auth');
 const router = express.Router();
 const {
     getAllWatches,
@@ -6,15 +7,17 @@ const {
     createWatch,
     updateWatch,
     deleteWatch,
-    searchWatches
+    searchWatches,
+    getWatchesByCategory
 } = require('../controllers/watchController');
 
 // Watch routes
 router.get('/', getAllWatches);
-router.get('/search', searchWatches);
+router.get('/search/:val', searchWatches);
 router.get('/:id', getWatchById);
-router.post('/', createWatch);
-router.put('/:id', updateWatch);
-router.delete('/:id', deleteWatch);
+router.get('/category/:category', getWatchesByCategory)
+router.post('/', middleware.isAdmin,createWatch);
+router.put('/:id', middleware.isAdmin, updateWatch);
+router.delete('/:id', middleware.isAdmin,deleteWatch);
 
-module.exports = router; 
+module.exports = router;

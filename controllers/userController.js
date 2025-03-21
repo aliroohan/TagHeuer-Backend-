@@ -1,4 +1,5 @@
 const User = require('../models/user');
+const Watch = require('../models/watch');
 const jwt = require('jsonwebtoken');
 
 // Create a new user
@@ -115,7 +116,6 @@ const loginUser = async (req, res) => {
         });
     }
 };
-
 
 const loginAdmin = async (req, res) => {
     try {
@@ -244,6 +244,85 @@ const deleteUser = async (req, res) => {
     }
 };
 
+// add watch to wishlist
+const addToWishlist = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found'
+            })
+        }
+
+        const watch = await Watch.findById(req.params.watchId);
+        if (!watch) {
+            return res.status(404).json({
+                success: false,
+                error: 'Watch not found'
+            })
+        }
+        const wishlist = user.wishlist.map(id => id.toString().split('\'')[1])
+        // Check if the watch is already in the wishlist
+        console.log(wishlist[0])
+        if (wishlist.includes(req.params.watchId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Watch is already in the wishlist'
+            })
+        }
+        // Add the watch to the wishlist
+
+        user.wishlist.push(watch);
+        await user.save();
+        res.status(200).json({
+            success: true,
+            data: user
+        })
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: error.message
+        })
+    }
+}
+
+// Remove from wishlist
+const removeFromWishlist = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found'
+            })
+        }
+
+        const wishlist = user.wishlist.map(id => id.toString().split('\'')[1])
+
+        if (wishlist.includes(req.params.watchId)) {
+            const query = await Watch.findById(req.params.watchId)
+            user.wishlist.pull(query._id)
+            await user.save();
+            return res.status(200).json({
+                success: true,
+                data: user
+            })
+        }
+        res.status(404).json({
+            success: false,
+            error: 'Watch not found in wishlist'
+        })
+
+
+    } catch (error){
+        res.status(500).json({
+            success: false,
+            error: error.message
+        })
+    }
+}
 // Exporting all functions at the end
 module.exports = {
     createUser,
@@ -252,5 +331,7 @@ module.exports = {
     getUserById,
     updateUser,
     loginAdmin,
-    deleteUser
+    deleteUser,
+    addToWishlist,
+    removeFromWishlist
 };

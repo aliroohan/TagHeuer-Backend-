@@ -8,7 +8,9 @@ const {
     updateUser,
     deleteUser,
     loginAdmin,
-    loginUser
+    loginUser,
+    addToWishlist,
+    removeFromWishlist
 } = require('../controllers/userController');
 
 // User routes
@@ -19,5 +21,7 @@ router.get('/', auth.isAdmin, getAllUsers);
 router.get('/:id', auth.isAdmin, getUserById);
 router.put('/:id', auth.auth, updateUser);
 router.delete('/:id', auth.isAdmin, deleteUser);
+router.post('/wishlist/:watchId', auth.auth, addToWishlist);
+router.delete('/wishlist/:watchId', auth.auth, removeFromWishlist);
 
 module.exports = router;
