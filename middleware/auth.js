@@ -29,7 +29,7 @@ const isAdmin = async (req, res, next) => {
         const token = req.header('Authorization').replace('Bearer ', '')
         const decoded = jwt.verify(token, process.env.JWT_SECRET)
         const user = await User.findOne({ _id: decoded._id })
-        if (!req.user.is_admin) {
+        if (!user.is_admin) {
             return res.status(403).json({
                 success: false,
                 error: 'Access denied. Admin privileges required'

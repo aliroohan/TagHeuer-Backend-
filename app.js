@@ -33,7 +33,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/watches', watchRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
-app.use('/api/addresses', addressRoutes);
+app.use('/api/address', addressRoutes);
 
 // Start server
 app.listen(3000, () => {

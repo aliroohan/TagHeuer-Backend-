@@ -12,9 +12,9 @@ const {
 // Order routes
 router.post('/', middlewares.auth, createOrder);
 router.get('/', middlewares.isAdmin, getAllOrders);
-router.get('/user/', middlewares.auth, getOrdersByUser);
+router.get('/user', middlewares.auth, getOrdersByUser);
 router.get('/:orderId', middlewares.auth, getOrderById);
-router.put('/orderId/status', middlewares.isAdmin,updateOrderStatus);
+router.put('/status', middlewares.isAdmin, updateOrderStatus);
 
 
 module.exports = router;

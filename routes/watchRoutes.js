@@ -16,8 +16,8 @@ router.get('/', getAllWatches);
 router.get('/search/:val', searchWatches);
 router.get('/:id', getWatchById);
 router.get('/category/:category', getWatchesByCategory)
-router.post('/', middleware.isAdmin,createWatch);
+router.post('/', middleware.isAdmin, createWatch);
 router.put('/:id', middleware.isAdmin, updateWatch);
-router.delete('/:id', middleware.isAdmin,deleteWatch);
+router.delete('/:id', middleware.isAdmin, deleteWatch);
 
 module.exports = router;

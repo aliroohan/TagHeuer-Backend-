@@ -24,11 +24,14 @@ const createUser = async (req, res) => {
             });
         }
 
-        const newUser = new User(req.body); // Create a new user instance
+        if (!req.body.terms) {
+            return res.status(400).json({
+                success: false,
+                error: 'Please accept the terms and conditions'
+            });
+        }
 
-        // Generate JWT token
-        const token = jwt.sign({_id: newUser._id}, process.env.JWT_SECRET);
-        newUser.token = token; // Attach the token to the user object
+        const newUser = new User(req.body); // Create a new user instance
 
         const savedUser = await newUser.save(); // Save the new user to the database
         res.status(201).json({
@@ -46,7 +49,9 @@ const createUser = async (req, res) => {
 // Get all users
 const getAllUsers = async (req, res) => {
     try {
-        const users = await User.find(); // Fetch all users from the database
+        let users = await User.find(); // Fetch all users from the database
+
+        users = users.filter((user) => user.is_admin === false);
         res.status(200).json({
             success: true,
             count: users.length, // Count of users returned
@@ -72,7 +77,6 @@ const loginUser = async (req, res) => {
 
         // Don't exclude the password field for authentication
         const user = await User.findOne({email: email});
-        console.log(user.is_admin);
         if (!user) {
             return res.status(401).json({
                 success: false,
@@ -265,7 +269,6 @@ const addToWishlist = async (req, res) => {
         }
         const wishlist = user.wishlist.map(id => id.toString().split('\'')[1])
         // Check if the watch is already in the wishlist
-        console.log(wishlist[0])
         if (wishlist.includes(req.params.watchId)) {
             return res.status(400).json({
                 success: false,

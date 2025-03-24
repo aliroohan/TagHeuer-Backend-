@@ -106,7 +106,19 @@ const createWatch = async (req, res) => {
 const updateWatch = async (req, res) => {
     try {
         // Check if required fields are present
-        const requiredFields = ['name', 'brand', 'price'];
+        const requiredFields = [
+            'name',
+            'reference',
+            'price',
+            'category',
+            'description',
+            'movement',
+            'case',
+            'strap',
+            'dial',
+            'quantity',
+            'images'
+        ];
         const missingFields = requiredFields.filter(field => !req.body[field]);
         
         if (missingFields.length > 0) {
@@ -151,13 +163,22 @@ const deleteWatch = async (req, res) => {
         const watch = await Watch.findById(req.params.id);
         
         if (!watch) {
-            return res.status(404).json({ message: 'Watch not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Watch not found'
+            });
         }
 
         await watch.deleteOne();
-        res.status(200).json({ message: 'Watch removed' });
+        res.status(200).json({
+            success: true,
+            message: 'Watch removed'
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 

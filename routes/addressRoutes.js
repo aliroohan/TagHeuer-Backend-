@@ -1,4 +1,5 @@
 const express = require('express');
+const middleware = require('../middleware/auth');
 const router = express.Router();
 const {
     createAddress,
@@ -11,11 +12,11 @@ const {
 
 
 // Address routes
-router.post('/', createAddress);
-router.get('/', getAllAddresses);
-router.get('/user/:userId', getAddressesByUser);
-router.get('/:id', getAddressById);
-router.put('/:id', updateAddress);
-router.delete('/:id', deleteAddress);
+router.post('/', middleware.auth, createAddress);
+router.get('/', middleware.isAdmin, getAllAddresses);
+router.get('/user', middleware.auth, getAddressesByUser);
+router.get('/:id', middleware.auth, getAddressById);
+router.put('/:id', middleware.auth, updateAddress);
+router.delete('/:id', middleware.auth, deleteAddress);
 
 module.exports = router;
